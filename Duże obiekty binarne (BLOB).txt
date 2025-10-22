@@ -1,0 +1,87 @@
+1.
+
+create table movies as select * from ztpd.movies;
+
+2.
+
+describe movies;
+
+3.
+
+select id, title from movies where cover is null;
+
+4.
+
+select id, title, dbms_lob.getlength(cover) as filesize from movies where cover is not null;
+
+5.
+
+select id, title, dbms_lob.getlength(cover) as filesize from movies where cover is null;
+
+Filesize będzie mieć wartość NULL.
+
+6.
+
+select DIRECTORY_NAME, DIRECTORY_PATH from ALL_DIRECTORIES where DIRECTORY_NAME = 'TPD_DIR'
+
+7.
+
+update movies set cover = EMPTY_BLOB(), mime_type = 'image/jpeg' where id = 66;
+
+8.
+
+select id, title, dbms_lob.getlength(cover) as filesize from movies where id in (65, 66);
+
+9.
+
+DECLARE
+lobd blob;
+fils BFILE := BFILENAME('/u01/oradata/dblab11g/directories/mbd/','escape.jpg');
+BEGIN
+SELECT cover INTO lobd
+FROM movies
+where movie_id=66
+FOR UPDATE;
+DBMS_LOB.fileopen(fils, DBMS_LOB.file_readonly);
+DBMS_LOB.LOADFROMFILE(lobd,fils,DBMS_LOB.GETLENGTH(fils));
+DBMS_LOB.FILECLOSE(fils);
+COMMIT;
+END;
+/
+
+10.
+
+CREATE TABLE TEMP_COVERS(
+    movie_id number(12),
+    image bfile,
+    mime_type varchar(50)
+);
+
+11.
+
+insert into temp_covers values (65, BFILENAME('/u01/oradata/dblab11g/directories/mbd/','escape.jpg'), 'image/jpeg');
+commit;
+
+12.
+
+select movie_id, dbms_lob.getlength(image) as filesize from temp_covers;
+
+13.
+
+DECLARE
+a blob;
+fils BFILE := BFILENAME('/u01/oradata/dblab11g/directories/mbd/','escape.jpg');
+BEGIN
+dbms_lob.createtemporary(a, TRUE);
+-- operacje na LOB
+dbms_lob.freetemporary(a);
+END;
+/
+
+14.
+
+select id, title, dbms_lob.getlength(cover) as filesize from movies where id in (65, 66);
+
+15.
+
+drop table movies;
