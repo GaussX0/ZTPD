@@ -1,4 +1,4 @@
-1.
+​​​​​1.
 
 create table movies as select * from ztpd.movies;
 
@@ -10,7 +10,7 @@ describe movies;
 
 select id, title from movies where cover is null;
 
-4.
+4. 
 
 select id, title, dbms_lob.getlength(cover) as filesize from movies where cover is not null;
 
@@ -36,11 +36,11 @@ select id, title, dbms_lob.getlength(cover) as filesize from movies where id in 
 
 DECLARE
 lobd blob;
-fils BFILE := BFILENAME('/u01/oradata/dblab11g/directories/mbd/','escape.jpg');
+fils BFILE := BFILENAME('TPD_DIR','escape.jpg');
 BEGIN
 SELECT cover INTO lobd
 FROM movies
-where movie_id=66
+where id=66
 FOR UPDATE;
 DBMS_LOB.fileopen(fils, DBMS_LOB.file_readonly);
 DBMS_LOB.LOADFROMFILE(lobd,fils,DBMS_LOB.GETLENGTH(fils));
@@ -59,7 +59,7 @@ CREATE TABLE TEMP_COVERS(
 
 11.
 
-insert into temp_covers values (65, BFILENAME('/u01/oradata/dblab11g/directories/mbd/','escape.jpg'), 'image/jpeg');
+insert into temp_covers values (65, BFILENAME('TPD_DIR','escape.jpg'), 'image/jpeg');
 commit;
 
 12.
@@ -69,12 +69,24 @@ select movie_id, dbms_lob.getlength(image) as filesize from temp_covers;
 13.
 
 DECLARE
-a blob;
-fils BFILE := BFILENAME('/u01/oradata/dblab11g/directories/mbd/','escape.jpg');
+    tmp BLOB;
+    fils BFILE;
+    v_mimetype VARCHAR2(50);
 BEGIN
-dbms_lob.createtemporary(a, TRUE);
--- operacje na LOB
-dbms_lob.freetemporary(a);
+    SELECT image INTO fils FROM temp_covers WHERE movie_id = 65;
+    DBMS_LOB.createtemporary(tmp, TRUE);
+    DBMS_OUTPUT.put_line(DBMS_LOB.GETLENGTH(fils));
+    SELECT cover INTO tmp FROM movies WHERE id = 65 FOR UPDATE;
+    SELECT mime_type INTO v_mimetype FROM temp_covers WHERE movie_id = 65;
+    DBMS_OUTPUT.put_line(v_mimetype);
+    DBMS_LOB.FILEOPEN(fils, DBMS_LOB.FILE_READONLY);
+    DBMS_LOB.LOADFROMFILE(tmp, fils, DBMS_LOB.GETLENGTH(fils));
+    DBMS_LOB.FILECLOSE(fils);
+    UPDATE movies
+    SET mime_type = v_mimetype
+    WHERE id = 65;
+    COMMIT;
+    DBMS_LOB.FREETEMPORARY(tmp);
 END;
 /
 
