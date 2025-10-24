@@ -1,0 +1,91 @@
+​​​​​1.
+
+create table dokumenty (
+    id number(12) primary key,
+    dokument clob
+);
+
+2.
+
+DECLARE
+tmp clob;
+BEGIN
+  insert into dokumenty values (1, EMPTY_CLOB()) returning dokument into tmp;
+  for i in 1..10000 loop
+    DBMS_LOB.APPEND(tmp, 'Oto tekst. ');
+  end loop;
+END;
+/
+
+3.
+a) select * from dokumenty;
+b) select upper(dokument) from dokumenty;
+c) select length(dokument) from dokumenty;
+d) select DBMS_LOB.GETLENGTH(dokument) from dokumenty;
+e) select substr(dokument, 5, 1000) from dokumenty;
+f) select dbms_lob.substr(dokument, 1000, 5) from dokumenty;
+
+4. insert into dokumenty values (2, EMPTY_CLOB());
+
+5. insert into dokumenty values (3, NULL);
+
+6. Dla pierwszych dwóch zapytań nie ma różnicy. 
+Dla zapytań c) oraz d) EMPTY_CLOB zwraca długość 0, a NULL długość NULL.
+Dla zapytanie e) EMPTY_CLOB zwraca pusty string, a NULL - NULL. Z kolei dla zapytania f) obie funkcje zwróciły NULL.
+
+7.
+
+DECLARE
+vclob clob;
+fils BFILE := BFILENAME('TPD_DIR','dokument.txt');
+v_charset_id NUMBER := 0;
+v_lang_ctx NUMBER := 0;
+v_dest_offset number := 1;
+v_src_offset number := 1;
+v_warning number := 0;
+BEGIN
+SELECT dokument INTO vclob
+FROM dokumenty
+where id=2
+FOR UPDATE;
+DBMS_LOB.fileopen(fils, DBMS_LOB.file_readonly);
+DBMS_LOB.LOADCLOBFROMFILE(dest_lob => vclob, src_bfile => fils, amount => DBMS_LOB.GETLENGTH(fils), dest_offset => v_dest_offset, src_offset => v_src_offset, bfile_csid => v_charset_id, lang_context => v_lang_ctx, warning => v_warning);
+DBMS_LOB.FILECLOSE(fils);
+COMMIT;
+END;
+/
+
+8.
+
+update dokumenty set dokument = TO_CLOB(BFILE('TPD_DIR', 'dokument.txt'), 0, 'text/plain') where id = 3;
+
+9.
+
+select * from dokumenty;
+
+10. 
+
+select id, dbms_lob.getlength(dokument) from dokumenty;
+
+11. 
+
+drop table dokumenty;
+
+12.
+
+create or replace procedure clob_sensor (p_clob CLOB, p_pattern CHARACTER) as
+vclob clob;
+vlength number := length(p_pattern);
+begin
+    dbms_output.put_line(vlength);
+end;
+/
+
+13.
+
+create table biographies as (select * from ztpd.biographies);
+exec clob_sensor(EMPTY_CLOB(), 'Cimrman');
+
+14.
+
+drop table biographies;
