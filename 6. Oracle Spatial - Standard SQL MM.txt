@@ -1,0 +1,144 @@
+### SEKCJA 1
+
+A. Kod w zadaniu.
+
+select lpad('-',2*(level-1),'|-') || t.owner||'.'||t.type_name||' (FINAL:'||t.final||
+', INSTANTIABLE:'||t.instantiable||', ATTRIBUTES:'||t.attributes||', METHODS:'||t.methods||')'
+from all_types t
+start with t.type_name = 'ST_GEOMETRY'
+connect by prior t.type_name = t.supertype_name
+and prior t.owner = t.owner;
+
+B. Kod również w zadaniu.
+
+select distinct m.method_name
+from all_type_methods m
+where m.type_name like 'ST_POLYGON'
+and m.owner = 'MDSYS'
+order by 1;
+
+C.
+
+create table myst_major_cities (
+    fips_cntry varchar2(2),
+    city_name varchar2(40),
+    stgeom st_point
+)
+
+D.
+
+insert into myst_major_cities
+select c.fips_cntry, c.city_name,
+treat(st_point.from_sdo_geom(c.geom) as st_point) stgeom
+from ztpd.major_cities c;
+
+### SEKCJA 2
+
+A.
+
+insert into myst_major_cities values (
+    'PL',
+    'Szczyrk',
+    st_point(19.036107, 49.718655, 8307)
+)
+
+### SEKCJA 3
+
+A.
+
+create table myst_country_boundaries (
+    fips_cntry varchar2(2),
+    cntry_name varchar2(40),
+    stgeom st_multipolygon
+)
+
+B.
+
+insert into myst_country_boundaries
+select b.fips_cntry, b.cntry_name, st_multipolygon(b.geom)
+from country_boundaries b;
+
+C.
+
+select b.stgeom.st_geometrytype() typ, count(cntry_name) from myst_country_boundaries b group by b.stgeom.st_geometrytype();
+
+D.
+
+select b.stgeom.st_issimple() from myst_country_boundaries b;
+
+### SEKCJA 4
+
+A.
+
+select b.cntry_name, count(c.city_name)
+from myst_major_cities c, myst_country_boundaries b
+WHERE b.stgeom.ST_CONTAINS(c.stgeom) = 1
+GROUP BY b.cntry_name;
+
+B.
+
+select a.cntry_name, b.cntry_name
+from myst_country_boundaries a,
+myst_country_boundaries b
+where b.stgeom.ST_TOUCHES(a.stgeom) = 1
+and a.cntry_name = 'Czech Republic';
+
+C.
+
+select distinct b.cntry_name, r.name
+from rivers r, myst_country_boundaries b
+where b.cntry_name = 'Czech Republic'
+and b.stgeom.st_intersects(st_linestring(r.geom)) = 1;
+
+D.
+
+select treat(a.stgeom.ST_UNION(b.stgeom) as st_polygon).st_area()
+from myst_country_boundaries a, myst_country_boundaries b
+where a.cntry_name = 'Czech Republic'
+and b.cntry_name = 'Slovakia';
+
+E.
+
+select b.stgeom.ST_DIFFERENCE(ST_GEOMETRY(w.geom)).st_geometrytype()
+from myst_country_boundaries b, water_bodies w
+where b.cntry_name = 'Hungary'
+and w.name = 'Balaton';
+
+### SEKCJA 5
+
+A.
+
+select count(*)
+from myst_major_cities c, myst_country_boundaries b
+where b.cntry_name = 'Poland'
+and SDO_WITHIN_DISTANCE(c.stgeom, b.stgeom, 'distance=100 unit=km') = 'TRUE';
+
+B.
+
+insert into USER_SDO_GEOM_METADATA values (
+  'MYST_MAJOR_CITIES',
+  'STGEOM',
+  MDSYS.SDO_DIM_ARRAY(
+    MDSYS.SDO_DIM_ELEMENT('X', -180, 180, 0.01),
+    MDSYS.SDO_DIM_ELEMENT('Y', -90, 90, 0.01)
+  ),
+  8307
+);
+
+insert into USER_SDO_GEOM_METADATA values (
+  'MYST_COUNTRY_BOUNDARIES',
+  'STGEOM',
+  MDSYS.SDO_DIM_ARRAY(
+    MDSYS.SDO_DIM_ELEMENT('X', -180, 180, 0.01),
+    MDSYS.SDO_DIM_ELEMENT('Y', -90, 90, 0.01)
+  ),
+  8307
+);
+
+C.
+
+create index myst_major_cities_idx on myst_major_cities(stgeom) indextype is MDSYS.SPATIAL_INDEX_V2;
+
+create index myst_country_boundaries_idx on myst_country_boundaries(stgeom) indextype is MDSYS.SPATIAL_INDEX_V2;
+
+D. Kod jak w A. Indeksy są wyświetlane w planie, a konkretnie myst_major_cities_idx.
