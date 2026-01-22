@@ -1,0 +1,77 @@
+### SEKCJA 1
+
+A.
+
+create table s6_lrs (
+geom mdsys.sdo_geometry
+);
+
+B.
+
+insert into s6_lrs
+select s.geom
+from streets_and_railroads s, major_cities c
+where c.city_name = 'Koszalin'
+and SDO_WITHIN_DISTANCE(s.geom, c.geom, 'distance=10 unit=km') = 'TRUE';
+
+C.
+
+select SDO_GEOM.SDO_LENGTH(GEOM, 1, 'unit=km'),
+ST_LINESTRING(GEOM).ST_NUMPOINTS()
+from s6_lrs
+
+D.
+
+update s6_lrs set geom = sdo_lrs.convert_to_lrs_geom(geom, 0, 276.681315399186);
+
+E.
+
+INSERT INTO USER_SDO_GEOM_METADATA
+VALUES ('S6_LRS','GEOM',
+MDSYS.SDO_DIM_ARRAY(
+MDSYS.SDO_DIM_ELEMENT('X', 12.603676, 26.369824, 1),
+MDSYS.SDO_DIM_ELEMENT('Y', 45.8464, 58.0213, 1),
+MDSYS.SDO_DIM_ELEMENT('M', 0, 300, 1)),
+8307);
+
+F.
+
+CREATE INDEX s6_lrs_idx ON s6_lrs(geom) INDEXTYPE IS MDSYS.SPATIAL_INDEX;
+
+### SEKCJA 2
+
+A.
+
+select sdo_lrs.valid_measure(geom, 500)
+from s6_lrs;
+
+B.
+
+select sdo_lrs.geom_segment_end_pt(geom)
+from s6_lrs;
+
+C.
+
+select sdo_lrs.locate_pt(geom, 150, 0)
+from s6_lrs;
+
+D.
+
+select sdo_lrs.clip_geom_segment(geom, 120, 160)
+from s6_lrs;
+
+E.
+
+select sdo_lrs.project_pt(s.geom, c.geom)
+from s6_lrs s, major_cities c
+where c.city_name = 'Slupsk';
+
+F.
+
+select sdo_geom.sdo_length(
+    sdo_lrs.offset_geom_segment(s.geom, m.diminfo, 50, 200, 50, 'unit=m'), 
+    1, 'unit=km'
+) * 1000000 as koszt
+from s6_lrs s, user_sdo_geom_metadata m
+where m.table_name = 'S6_LRS' 
+and m.column_name = 'GEOM';
