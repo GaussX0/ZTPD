@@ -28,19 +28,19 @@ count(SWIAT/KRAJE/KRAJ[@KONTYNENT='k1'])
 
 32.
 
-(:doc('file:///C:/Users/Kamil/Desktop/XPath-XSLT/zesp_prac.xml')//NAZWISKO:)
+doc('file:///C:/Users/Kamil/Desktop/XPath-XSLT/zesp_prac.xml')//NAZWISKO
 
 33.
 
-(:doc('file:///C:/Users/Kamil/Desktop/XPath-XSLT/zesp_prac.xml')/ZESPOLY/ROW[NAZWA='SYSTEMY EKSPERCKIE']/PRACOWNICY/ROW/NAZWISKO:)
+doc('file:///C:/Users/Kamil/Desktop/XPath-XSLT/zesp_prac.xml')/ZESPOLY/ROW[NAZWA='SYSTEMY EKSPERCKIE']/PRACOWNICY/ROW/NAZWISKO
 
 34.
 
-(:count(doc('file:///C:/Users/Kamil/Desktop/XPath-XSLT/zesp_prac.xml')/ZESPOLY/ROW[ID_ZESP=10]/PRACOWNICY/ROW):)
+count(doc('file:///C:/Users/Kamil/Desktop/XPath-XSLT/zesp_prac.xml')/ZESPOLY/ROW[ID_ZESP=10]/PRACOWNICY/ROW)
 
 35.
 
-(:doc('file:///C:/Users/Kamil/Desktop/XPath-XSLT/zesp_prac.xml')//PRACOWNICY/ROW[ID_SZEFA=100]/NAZWISKO:)
+doc('file:///C:/Users/Kamil/Desktop/XPath-XSLT/zesp_prac.xml')//PRACOWNICY/ROW[ID_SZEFA=100]/NAZWISKO
 
 36.
 
