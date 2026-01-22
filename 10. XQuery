@@ -1,0 +1,206 @@
+5.
+
+for $author in doc("../Downloads/xquery/bib/bib.xml")//author return $author/last
+
+6.
+
+for $book in doc("../Downloads/xquery/bib/bib.xml")//book
+for $title in $book/title
+for $author in $book/author
+return 
+<ksiazka>
+  <author>
+    {$author/last}
+    {$author/first}
+  </author>
+  {$title}
+</ksiazka>
+
+7.
+
+for $book in doc("../Downloads/xquery/bib/bib.xml")//book
+for $title in $book/title
+for $author in $book/author
+return 
+<ksiazka>
+  <autor>
+    {concat($author/last, $author/first)}
+  </autor>
+  <tytul>
+  {$title/text()}
+  </tytul>
+</ksiazka>
+
+8.
+
+for $book in doc("../Downloads/xquery/bib/bib.xml")//book
+for $title in $book/title
+for $author in $book/author
+return 
+<ksiazka>
+  <autor>
+    {concat($author/last, ' ', $author/first)}
+  </autor>
+  <tytul>
+  {$title/text()}
+  </tytul>
+</ksiazka>
+
+9.
+
+<wynik>
+{
+  for $book in doc("../Downloads/xquery/bib/bib.xml")//book
+for $title in $book/title
+for $author in $book/author
+return 
+<ksiazka>
+  <autor>
+    {concat($author/last, ' ', $author/first)}
+  </autor>
+  <tytul>
+  {$title/text()}
+  </tytul>
+</ksiazka>
+}
+</wynik>
+
+
+10.
+
+<imiona>
+{
+  for $book in doc("../Downloads/xquery/bib/bib.xml")//book where $book/title = 'Data on the Web'
+for $author in $book/author
+return <imie>{$author/first/text()}</imie>
+}
+</imiona>
+
+11.
+
+Wyrażenie ścieżkowe:
+
+<DataOnTheWeb>
+{
+  doc("../Downloads/xquery/bib/bib.xml")//book[title='Data on the Web']
+}
+</DataOnTheWeb>
+
+Klauzula where:
+
+<DataOnTheWeb>
+{
+    for $book in doc("../Downloads/xquery/bib/bib.xml")//book where $book/title = 'Data on the Web' return $book
+}
+</DataOnTheWeb>
+
+12.
+
+<Data>
+{
+  for $book in doc("../Downloads/xquery/bib/bib.xml")//book where contains($book/title, 'Data')
+for $title in $book/title
+for $author in $book/author
+return 
+<nazwisko>
+  {$author/last/text()}
+</nazwisko>
+}
+</Data>
+
+13.
+
+for $book in doc("../Downloads/xquery/bib/bib.xml")//book where contains($book/title, 'Data')
+return 
+<Data>
+{$book/title}
+{
+  for $author in $book/author return
+<nazwisko>
+  {$author/last/text()}
+</nazwisko>
+}
+</Data>
+
+14.
+
+for $book in doc("../Downloads/xquery/bib/bib.xml")//book where count($book/author) <= 2
+return $book/title
+
+15.
+
+for $book in doc("../Downloads/xquery/bib/bib.xml")//book
+return 
+<ksiazka>
+{$book/title}
+<autorow>{count($book/author)}</autorow>
+</ksiazka>
+
+16.
+
+let $book := doc("../Downloads/xquery/bib/bib.xml")//book
+return
+<przedzial>
+{min($book/@year)} - {max($book/@year)}
+</przedzial>
+
+17.
+
+let $book := doc("../Downloads/xquery/bib/bib.xml")//book
+return
+<roznica>
+{max($book/price) - min($book/price)}
+</roznica>
+
+18.
+
+<najtansze>
+{
+  let $books := doc("../Downloads/xquery/bib/bib.xml")//book
+  let $minprice := min($books/price)
+  for $book in doc("../Downloads/xquery/bib/bib.xml")//book where $book/price = $minprice
+  return 
+  <najtansza>
+  {$book/title}
+  {for $author in $book/author return $author}
+  </najtansza>
+}
+</najtansze>
+
+19.
+
+let $authors := distinct-values(doc("../Downloads/xquery/bib/bib.xml")//author/last)
+for $author in $authors
+return 
+<autor>
+<last>	{$author}</last>
+{for $book in doc("../Downloads/xquery/bib/bib.xml")//book where $book/author/last = $author return $book/title}
+</autor>
+
+20.
+
+<wynik>
+{
+    for $play in collection("../Downloads/xquery/shakespeare")//PLAY
+    return $play/TITLE
+}
+</wynik>
+
+21.
+
+for $play in collection("../Downloads/xquery/shakespeare")//PLAY where some $line in $play//LINE satisfies contains($line, "or not to be")
+return $play/TITLE
+
+22.
+
+<wynik>
+{
+    for $play in collection("../Downloads/xquery/shakespeare")//PLAY
+    return 
+    <sztuka tytul='{$play/TITLE}'>
+    <postaci>{count($play//PERSONAE//PERSONA)}</postaci>
+    <aktow>{count($play//ACT)}</aktow>
+    <scen>{count($play//SCENE)}</scen>
+    </sztuka>
+}
+</wynik>
