@@ -1,0 +1,204 @@
+1.
+
+create table cytaty as select * from ztpd.cytaty
+
+2.
+
+select * from cytaty where lower(tekst) like '%pesymista%' and lower(tekst) like '%optymista%'
+
+3.
+
+create index cytaty_idx on cytaty(tekst) indextype is CTXSYS.CONTEXT;
+
+4.
+
+select * from cytaty where contains(tekst, 'pesymista and optymista', 1) > 0
+
+5.
+
+select * from cytaty where contains(tekst, 'pesymista not optymista', 1) > 0
+
+6.
+
+select * from cytaty where contains(tekst, 'near((pesymista, optymista), 3)', 1) > 0
+
+7.
+
+select * from cytaty where contains(tekst, 'near((pesymista, optymista), 10)', 1) > 0
+
+8.
+
+select * from cytaty where contains(tekst, 'życi%', 1) > 0
+
+9.
+
+select id, tekst, score(1) from cytaty where contains(tekst, 'życi%', 1) > 0
+
+10.
+
+select id, tekst, score(1) as score from cytaty where contains(tekst, 'życi%', 1) > 0 order by score desc fetch first 1 row only
+
+11.
+
+select id, tekst from cytaty where contains(tekst, '?probelm', 1) > 0
+
+12.
+
+insert into cytaty values (39, 'Bertrand Russell', 'To smutne, że głupcy są tacy pewni siebie, a ludzie rozsądni tacy pełni wątpliwości.');
+commit;
+
+13.
+
+select id, tekst from cytaty where contains(tekst, 'głupcy', 1) > 0
+Zapytanie nie zwróciło nic w wyniku, ponieważ domyślnie wykorzystany przez nas typ indeksu nie ulega automatycznemu odświeżaniu, a to na jego podstawie operator contains przeszukuje przestrzeń cytatów.
+
+14.
+
+Wyświetlenie tabeli: select * from dr$cytaty_idx$i
+Sprawdzenie, czy w indeksie znajduje się słowo 'głupcy': select * from dr$cytaty_idx$i where token_text = 'GŁUPCY'
+(nie znajduje się)
+
+15.
+
+drop index cytaty_idx;
+create index cytaty_idx on cytaty(tekst) indextype is CTXSYS.CONTEXT;
+
+16.
+
+Sprawdzenie: select * from dr$cytaty_idx$i where token_text = 'GŁUPCY'
+Słowo GŁUPCY figuruje w odświeżonym indeksie.
+
+Po ponownym wywołaniu zapytania:
+select id, tekst from cytaty where contains(tekst, 'głupcy', 1) > 0
+cytat Bertranda Russella wyświetla się poprawnie w wyniku.
+
+17.
+
+drop index cytaty_idx;
+drop table cytaty;
+
+### Zaawansowane indeksowanie i wyszukiwanie
+
+1.
+
+create table quotes as select * from ztpd.quotes
+
+2.
+
+create index quotes_idx on quotes(text) indextype is CTXSYS.CONTEXT;
+
+3.
+
+select id, text from quotes where contains(text, 'work', 1) > 0
+select id, text from quotes where contains(text, '$work', 1) > 0
+select id, text from quotes where contains(text, 'working', 1) > 0
+select id, text from quotes where contains(text, '$working', 1) > 0
+
+Spośród wszystkich tych zapytań tylko trzecie nie zwróciło żadnego wyniku, a wszystkie pozostałe cytat 'If it doesn't work, it doesn't matter how fast it doesn't work.'. Zawiera on bezpośrednio słowo 'work', a zatem również stem słowa 'work' oraz stem słowa 'working'.
+
+4.
+
+select id, text from quotes where contains(text, 'it', 1) > 0
+
+System nie zwrócił żadnych wyników, ponieważ słowo 'it' jest tzw. stop wordem, które nie są domyślnie indeksowane.
+
+5.
+
+select * from CTX_STOPLISTS
+Myślę, że system wykorzystywał do tego momentu listę default_stoplist, na co wskazuje jedyna wartość spl_count większa od 0 w całej perspektywie.
+
+6.
+
+drop index quotes_idx;
+select * from ctx_stopwords where spw_stoplist = 'DEFAULT_STOPLIST';
+
+7.
+
+create index quotes_idx on quotes(text) indextype is CTXSYS.CONTEXT parameters('stoplist ctxsys.empty_stoplist');
+
+8.
+
+select id, text from quotes where contains(text, 'it', 1) > 0
+
+Tak, system zwrócił cztery cytaty.
+
+9.
+
+select id, text from quotes where contains(text, 'fool and humans', 1) > 0
+
+10.
+
+select id, text from quotes where contains(text, 'fool and computer', 1) > 0
+
+11.
+
+select id, text from quotes where contains(text, '(fool and computer) within sentence', 1) > 0
+
+Błąd: ORA-29902: błąd podczas wykonywania podprogramu ODCIIndexStart()
+ORA-20000: Oracle Text error:
+DRG-10837: sekcja sentence nie istnieje
+
+Domyślnie indeks context nie grupuje słów, stąd też cytat nie jest podzielony na sekcje.
+
+12.
+
+drop index quotes_idx
+
+13.
+
+begin
+    ctx_ddl.create_section_group('nullgroup', 'NULL_SECTION_GROUP');
+    ctx_ddl.add_special_section('nullgroup', 'SENTENCE');
+    ctx_ddl.add_special_section('nullgroup', 'PARAGRAPH');
+end;
+/
+
+14.
+
+create index quotes_idx on quotes(text) indextype is CTXSYS.CONTEXT parameters('stoplist ctxsys.empty_stoplist section group nullgroup');
+
+15.
+
+select id, text from quotes where contains(text, '(fool and humans) within sentence', 1) > 0
+select id, text from quotes where contains(text, '(fool and computer) within sentence', 1) > 0
+
+Obecnie wyszukiwanie działa - drugie zapytanie zwróciło jedną linijkę, a pierwsze nie.
+
+16.
+
+select id, text from quotes where contains(text, 'humans', 1) > 0
+
+Tak, 'non-humans' również zostało zwrócone. To dlatego, że '-' jest interpretowany jako znak przestankowy, więc non-humans jest faktycznie interpretowany jako dwa słowa, non i humans.
+
+17.
+
+drop index quotes_idx;
+
+begin
+    ctx_ddl.create_preference('lex_z_m','BASIC_LEXER');
+    ctx_ddl.set_attribute('lex_z_m',
+    'printjoins', '-');
+end;
+/
+
+create index quotes_idx on quotes(text) indextype is CTXSYS.CONTEXT parameters('stoplist ctxsys.empty_stoplist section group nullgroup lexer lex_z_m');
+
+18.
+
+select id, text from quotes where contains(text, 'humans', 1) > 0
+
+Tym razem słowo non-humans nie zostało złapane.
+
+19.
+
+select id, text from quotes where contains(text, 'non\-humans', 1) > 0
+
+20.
+
+drop table quotes;
+
+begin
+    ctx_ddl.drop_preference('lex_z_m');
+    ctx_ddl.drop_section_group('nullgroup');
+end;
+/
