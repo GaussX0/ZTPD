@@ -87,12 +87,20 @@ END wartosc;
     END odwzoruj;
 END;
 
-5.
+5. drop table wlasciciele;
+
+6.
 
 create type Wlasciciel as object (
     imie varchar2(20),
     nazwisko varchar2(20)
 );
+create table wlasciciele of wlasciciel;
+insert into wlasciciele values (new wlasciciel('Kamil', 'Malecki'));
+insert into wlasciciele values (new wlasciciel('Adam', 'Malinowski'));
+select * from wlasciciele;
+
+6.
 
 create type Samochod as object (
     marka varchar2(20),
@@ -105,7 +113,7 @@ create type Samochod as object (
     member function wiek return number
 );
 
-6. W zasadzie kod z PDFu robi to, czego wymaga polecenie:
+11. W zasadzie kod z PDFu robi to, czego wymaga polecenie:
 
 DECLARE
 TYPE t_przedmioty IS VARRAY(10) OF VARCHAR2(20);
@@ -134,7 +142,7 @@ DBMS_OUTPUT.PUT_LINE('Limit: ' || moje_przedmioty.LIMIT());
 DBMS_OUTPUT.PUT_LINE('Liczba elementow: ' || moje_przedmioty.COUNT());
 END;
 
-7.
+12.
 
 DECLARE
 TYPE t_tytuly IS VARRAY(5) OF VARCHAR2(50);
@@ -147,7 +155,7 @@ moje_tytuly.TRIM(4);
 moje_tytuly.DELETE();
 END;
 
-8. Ponownie polecenie zawiera odpowiedź:
+13. Ponownie polecenie zawiera odpowiedź:
 
 DECLARE
 TYPE t_wykladowcy IS TABLE OF VARCHAR2(20);
@@ -187,7 +195,7 @@ DBMS_OUTPUT.PUT_LINE('Limit: ' || moi_wykladowcy.LIMIT());
 DBMS_OUTPUT.PUT_LINE('Liczba elementow: ' || moi_wykladowcy.COUNT());
 END;
 
-9.
+14.
 
 DECLARE
 TYPE t_miesiace IS TABLE OF VARCHAR2(12);
@@ -217,17 +225,17 @@ BEGIN
     END LOOP;
 END;
 
-10. Odpowiedź w zadaniu.
+15. Odpowiedź w zadaniu.
 
-11.
+16.
 
-CREATE TYPE KOSZYK_PRODUKTOW AS VARRAY(10) OF VARCHAR2(20);
+CREATE TYPE KOSZYK_PRODUKTOW AS TABLE OF VARCHAR2(20);
 /
 CREATE TYPE transakcja AS OBJECT (
 numer_transakcji VARCHAR2(50),
 koszyk koszyk_produktow );
 /
-CREATE TABLE zakupy OF transakcja;
+CREATE TABLE zakupy OF transakcja nested table koszyk store as koszyki_produktow;
 INSERT INTO zakupy VALUES
 ('tpd123',koszyk_produktow('ZUPA','ZĄB','DĄB'));
 INSERT INTO zakupy VALUES
@@ -238,8 +246,8 @@ SELECT * FROM zakupy;
 delete from zakupy z where exists (select numer_transakcji from table(z.koszyk) k where k.column_value = 'ZUPA');
 select * from zakupy;
 
-12. Kod w zadaniu.
+17. Kod w zadaniu.
 
-13. Hierarchia działa dobrze, poza próbą stworzenia InnaIstota - z uwagi na adnotację NOT INSTANTIABLE nie można bezpośrednio stworzyć instancji klasy istota.
+18. Hierarchia działa dobrze, poza próbą stworzenia InnaIstota - z uwagi na adnotację NOT INSTANTIABLE nie można bezpośrednio stworzyć instancji klasy istota.
 
-14-15. - Kod w zadaniu.
+19-20. - Kod w zadaniu.

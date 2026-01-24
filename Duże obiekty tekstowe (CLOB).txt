@@ -25,9 +25,15 @@ d) select DBMS_LOB.GETLENGTH(dokument) from dokumenty;
 e) select substr(dokument, 5, 1000) from dokumenty;
 f) select dbms_lob.substr(dokument, 1000, 5) from dokumenty;
 
-4. insert into dokumenty values (2, EMPTY_CLOB());
+4.
 
-5. insert into dokumenty values (3, NULL);
+insert into dokumenty values (2, EMPTY_CLOB());
+commit;
+
+5.
+
+insert into dokumenty values (3, NULL);
+commit;
 
 6. Dla pierwszych dwóch zapytań nie ma różnicy. 
 Dla zapytań c) oraz d) EMPTY_CLOB zwraca długość 0, a NULL długość NULL.
@@ -36,28 +42,37 @@ Dla zapytanie e) EMPTY_CLOB zwraca pusty string, a NULL - NULL. Z kolei dla zapy
 7.
 
 DECLARE
-vclob clob;
-fils BFILE := BFILENAME('TPD_DIR','dokument.txt');
-v_charset_id NUMBER := 0;
-v_lang_ctx NUMBER := 0;
-v_dest_offset number := 1;
-v_src_offset number := 1;
-v_warning number := 0;
+  vclob CLOB;
+  fils BFILE := BFILENAME('TPD_DIR','dokument.txt');
+  v_charset_id NUMBER := 0;
+  v_lang_ctx NUMBER := 0;
+  v_dest_offset NUMBER := 1;
+  v_src_offset NUMBER := 1;
+  v_warning NUMBER := 0;
+  v_amount INTEGER;
 BEGIN
-SELECT dokument INTO vclob
-FROM dokumenty
-where id=2
-FOR UPDATE;
-DBMS_LOB.fileopen(fils, DBMS_LOB.file_readonly);
-DBMS_LOB.LOADCLOBFROMFILE(dest_lob => vclob, src_bfile => fils, amount => DBMS_LOB.GETLENGTH(fils), dest_offset => v_dest_offset, src_offset => v_src_offset, bfile_csid => v_charset_id, lang_context => v_lang_ctx, warning => v_warning);
-DBMS_LOB.FILECLOSE(fils);
-COMMIT;
+  SELECT dokument INTO vclob FROM dokumenty WHERE id=2 FOR UPDATE;
+  DBMS_LOB.FILEOPEN(fils, DBMS_LOB.FILE_READONLY);
+  v_amount := DBMS_LOB.GETLENGTH(fils); 
+  DBMS_LOB.LOADCLOBFROMFILE(
+    dest_lob => vclob, 
+    src_bfile => fils, 
+    amount => v_amount,
+    dest_offset => v_dest_offset, 
+    src_offset => v_src_offset, 
+    bfile_csid => v_charset_id, 
+    lang_context => v_lang_ctx, 
+    warning => v_warning
+  );
+  DBMS_LOB.FILECLOSE(fils);
+  COMMIT;
+  DBMS_OUTPUT.PUT_LINE('Status operacji: ' || v_warning);
 END;
 /
 
 8.
 
-update dokumenty set dokument = TO_CLOB(BFILE('TPD_DIR', 'dokument.txt'), 0, 'text/plain') where id = 3;
+update dokumenty set dokument = TO_CLOB(BFILENAME('TPD_DIR', 'dokument.txt')) where id = 3;
 
 9.
 
@@ -73,18 +88,38 @@ drop table dokumenty;
 
 12.
 
-create or replace procedure clob_sensor (p_clob CLOB, p_pattern CHARACTER) as
-vclob clob;
-vlength number := length(p_pattern);
-begin
-    dbms_output.put_line(vlength);
-end;
+CREATE OR REPLACE PROCEDURE CLOB_CENSOR(
+    p_clob IN OUT CLOB, 
+    p_pattern VARCHAR2
+) IS
+    v_position INTEGER;
+    v_replace_with VARCHAR2(100);
+    v_counter INTEGER := 1;
+BEGIN
+    v_replace_with := RPAD('.', LENGTH(p_pattern), '.');
+    LOOP
+        v_position := DBMS_LOB.INSTR(p_clob, p_pattern, v_counter);
+        EXIT WHEN v_position = 0;
+        DBMS_LOB.WRITE(p_clob, LENGTH(p_pattern), v_position, v_replace_with);
+        v_counter := v_position + LENGTH(p_pattern);
+    END LOOP;
+END;
 /
 
 13.
 
 create table biographies as (select * from ztpd.biographies);
-exec clob_sensor(EMPTY_CLOB(), 'Cimrman');
+
+DECLARE
+    v_bio CLOB;
+BEGIN
+    SELECT bio INTO v_bio FROM biographies WHERE id = 1 FOR UPDATE;
+    CLOB_CENSOR(v_bio, 'Cimrman');
+    COMMIT;
+END;
+/
+
+select bio from biographies;
 
 14.
 

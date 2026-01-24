@@ -59,7 +59,7 @@ CREATE TABLE TEMP_COVERS(
 
 11.
 
-insert into temp_covers values (65, BFILENAME('TPD_DIR','escape.jpg'), 'image/jpeg');
+insert into temp_covers values (65, BFILENAME('TPD_DIR','eagles.jpg'), 'image/jpeg');
 commit;
 
 12.
@@ -73,20 +73,17 @@ DECLARE
     fils BFILE;
     v_mimetype VARCHAR2(50);
 BEGIN
-    SELECT image INTO fils FROM temp_covers WHERE movie_id = 65;
+    SELECT image, mime_type INTO fils, v_mimetype FROM temp_covers WHERE movie_id = 65;
     DBMS_LOB.createtemporary(tmp, TRUE);
-    DBMS_OUTPUT.put_line(DBMS_LOB.GETLENGTH(fils));
-    SELECT cover INTO tmp FROM movies WHERE id = 65 FOR UPDATE;
-    SELECT mime_type INTO v_mimetype FROM temp_covers WHERE movie_id = 65;
-    DBMS_OUTPUT.put_line(v_mimetype);
     DBMS_LOB.FILEOPEN(fils, DBMS_LOB.FILE_READONLY);
     DBMS_LOB.LOADFROMFILE(tmp, fils, DBMS_LOB.GETLENGTH(fils));
     DBMS_LOB.FILECLOSE(fils);
     UPDATE movies
-    SET mime_type = v_mimetype
+    SET cover = tmp,
+        mime_type = v_mimetype
     WHERE id = 65;
-    COMMIT;
     DBMS_LOB.FREETEMPORARY(tmp);
+    COMMIT;
 END;
 /
 
